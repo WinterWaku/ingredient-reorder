@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrewOrder — Coffee Shop Restock Tracker</title>
+  <style>
+    /* CSS Reset & Variables */
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-cream: #FAF7F2;
+      --bg-surface: #FFFFFF;
+      --bg-card: #FFFFFF;
+      --border-color: #E6DFD5;
+      --border-subtle: #F0EAE1;
+      
+      --text-espresso: #241A14;
+      --text-muted: #6E6157;
+      --text-faint: #9E8F82;
+      
+      --accent-roast: #4A3326;
+      --accent-caramel: #C77E3C;
+      --accent-caramel-hover: #B26C2D;
+      --accent-caramel-light: #FDF3E9;
+      
+      --flag-red-bg: #FDEDED;
+      --flag-red-border: #F5B5B5;
+      --flag-red-text: #B72B2B;
+      --flag-red-accent: #D63939;
+      
+      --stock-green-bg: #EBF7EE;
+      --stock-green-border: #BBE5C4;
+      --stock-green-text: #1B7339;
+      
+      --shadow-sm: 0 1px 3px rgba(36, 26, 20, 0.05);
+      --shadow-md: 0 4px 12px rgba(36, 26, 20, 0.08);
+      --shadow-lg: 0 10px 25px rgba(36, 26, 20, 0.12);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-cream);
+      color: var(--text-espresso);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem 1rem;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.25rem 0;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .header-content {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent-roast);
+      color: #FFF;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-espresso);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.925rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Top Stats & Action Strip */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-espresso);
+      margin-top: 0.2rem;
+    }
+
+    .stat-card.alert {
+      background: var(--flag-red-bg);
+      border-color: var(--flag-red-border);
+    }
+
+    .stat-card.alert .stat-value {
+      color: var(--flag-red-text);
+    }
+
+    .stat-card.good {
+      background: var(--stock-green-bg);
+      border-color: var(--stock-green-border);
+    }
+
+    .stat-card.good .stat-value {
+      color: var(--stock-green-text);
+    }
+
+    /* Actions Bar */
+    .actions-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      margin-top: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+      appearance: none;
+      border: 1px solid transparent;
+      outline: none;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.55rem 1rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: all 0.18s ease;
+      touch-action: manipulation;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--accent-caramel);
+      color: #FFF;
+      box-shadow: 0 2px 6px rgba(199, 126, 60, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-caramel-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      border-color: var(--border-color);
+      color: var(--text-espresso);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-cream);
+      border-color: var(--text-faint);
+    }
+
+    .btn-subtle {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: transparent;
+      padding: 0.45rem 0.75rem;
+    }
+
+    .btn-subtle:hover {
+      background: var(--bg-cream);
+      color: var(--text-espresso);
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Search & Filter Bar */
+    .filter-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-faint);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.65rem 0.85rem 0.65rem 2.4rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: var(--bg-surface);
+      color: var(--text-espresso);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-caramel);
+      box-shadow: 0 0 0 3px rgba(199, 126, 60, 0.15);
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      display: none;
+      padding: 4px;
+      border-radius: var(--radius-full);
+    }
+
+    .clear-search-btn:hover {
+      color: var(--text-espresso);
+    }
+
+    /* Filter Chips */
+    .filter-chips {
+      display: flex;
+      overflow-x: auto;
+      gap: 0.45rem;
+      padding-bottom: 0.25rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .filter-chips::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .filter-chips::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .chip {
+      appearance: none;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-size: 0.825rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .chip:hover {
+      border-color: var(--text-faint);
+      color: var(--text-espresso);
+    }
+
+    .chip.active {
+      background: var(--accent-roast);
+      border-color: var(--accent-roast);
+      color: #FFF;
+      font-weight: 600;
+    }
+
+    .chip-flagged.active {
+      background: var(--flag-red-accent);
+      border-color: var(--flag-red-accent);
+    }
+
+    .chip .chip-count {
+      font-size: 0.75rem;
+      opacity: 0.85;
+      background: rgba(0, 0, 0, 0.08);
+      padding: 0.05rem 0.4rem;
+      border-radius: var(--radius-full);
+    }
+
+    .chip.active .chip-count {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Inventory Items List */
+    .items-container {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .item-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.85rem;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+      position: relative;
+    }
+
+    .item-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .item-card.is-flagged {
+      border-color: var(--flag-red-border);
+      background-color: #FFFAFA;
+      box-shadow: 0 2px 8px rgba(214, 57, 57, 0.08);
+    }
+
+    /* Flag Toggle Button */
+    .flag-toggle-btn {
+      appearance: none;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      color: var(--text-muted);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+
+    .flag-toggle-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2;
+      transition: transform 0.15s ease;
+    }
+
+    .flag-toggle-btn:hover {
+      border-color: var(--flag-red-accent);
+      color: var(--flag-red-accent);
+      transform: scale(1.04);
+    }
+
+    .item-card.is-flagged .flag-toggle-btn {
+      background: var(--flag-red-accent);
+      border-color: var(--flag-red-accent);
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(214, 57, 57, 0.3);
+    }
+
+    .item-card.is-flagged .flag-toggle-btn svg {
+      fill: #FFF;
+      stroke: #FFF;
+    }
+
+    /* Item Details */
+    .item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0; /* truncate friendly */
+    }
+
+    .item-header-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .item-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-espresso);
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-full);
+      line-height: 1;
+    }
+
+    .badge-flagged {
+      background: var(--flag-red-bg);
+      color: var(--flag-red-text);
+      border: 1px solid var(--flag-red-border);
+    }
+
+    .badge-ok {
+      background: var(--stock-green-bg);
+      color: var(--stock-green-text);
+      border: 1px solid var(--stock-green-border);
+    }
+
+    .item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    .category-tag {
+      background: var(--bg-cream);
+      border: 1px solid var(--border-color);
+      padding: 0.1rem 0.45rem;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .par-threshold {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    /* Quantity Controls & Card Actions */
+    .item-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      justify-self: end;
+    }
+
+    .qty-counter {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .qty-btn {
+      appearance: none;
+      background: transparent;
+      border: none;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-espresso);
+      font-weight: bold;
+      transition: background-color 0.12s ease;
+      touch-action: manipulation;
+    }
+
+    .qty-btn:hover {
+      background: var(--bg-cream);
+      color: var(--accent-caramel);
+    }
+
+    .qty-value {
+      min-width: 50px;
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0 0.25rem;
+      white-space: nowrap;
+    }
+
+    .item-delete-btn {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .item-delete-btn:hover {
+      color: var(--flag-red-accent);
+      background: var(--flag-red-bg);
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      background: var(--bg-surface);
+      border: 1.5px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .empty-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-full);
+      background: var(--accent-caramel-light);
+      color: var(--accent-caramel);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .empty-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .empty-state h3 {
+      font-size: 1.15rem;
+      color: var(--text-espresso);
+      font-weight: 600;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      max-width: 380px;
+      font-size: 0.9rem;
+    }
+
+    /* Modal / Form Styling */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(36, 26, 20, 0.45);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .modal-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-box {
+      background: var(--bg-surface);
+      width: 100%;
+      max-width: 500px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      transform: translateY(16px) scale(0.98);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-backdrop.is-open .modal-box {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-cream);
+    }
+
+    .modal-header h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-espresso);
+    }
+
+    .modal-close-btn {
+      appearance: none;
+      background: transparent;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--border-color);
+      color: var(--text-espresso);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+    }
+
+    /* Friendly Error Alert Banner */
+    .friendly-alert {
+      display: none;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      line-height: 1.4;
+      animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    .friendly-alert.alert-error {
+      display: flex;
+      background: var(--flag-red-bg);
+      border: 1px solid var(--flag-red-border);
+      color: var(--flag-red-text);
+    }
+
+    .friendly-alert svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+      40%, 60% { transform: translate3d(3px, 0, 0); }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-espresso);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: var(--bg-surface);
+      color: var(--text-espresso);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent-caramel);
+      box-shadow: 0 0 0 3px rgba(199, 126, 60, 0.15);
+    }
+
+    .form-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 0.25rem;
+      color: var(--text-espresso);
+    }
+
+    .form-checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--flag-red-accent);
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      background: var(--bg-cream);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      left: 1.5rem;
+      max-width: 420px;
+      margin: 0 auto;
+      z-index: 200;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      pointer-events: auto;
+      background: var(--accent-roast);
+      color: #FFF;
+      padding: 0.85rem 1.15rem;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .toast.toast-success {
+      background: #1B5E30;
+    }
+
+    .toast.toast-error {
+      background: #A62828;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Print View */
+    @media print {
+      body {
+        background: #FFF;
+        color: #000;
+      }
+      header, .actions-panel, .filter-section, .qty-btn, .item-delete-btn, .modal-backdrop, .toast-container {
+        display: none !important;
+      }
+      .item-card {
+        box-shadow: none;
+        border: 1px solid #CCC;
+        page-break-inside: avoid;
+        margin-bottom: 0.5rem;
+      }
+      .container {
+        padding: 0;
+        max-width: 100%;
+      }
+      .print-header {
+        display: block !important;
+        margin-bottom: 1.5rem;
+      }
+    }
+
+    .print-header {
+      display: none;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .header-content {
+        gap: 0.2rem;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      .subtitle {
+        font-size: 0.85rem;
+      }
+      .stats-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      .item-card {
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        padding: 0.85rem;
+      }
+      .item-controls {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+        justify-content: space-between;
+        margin-top: 0.35rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .actions-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .btn-group {
+        width: 100%;
+      }
+      .btn-group .btn {
+        flex: 1;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="header-content">
+      <div class="logo-badge">
+        <div class="logo-icon" aria-hidden="true">
+          <!-- Coffee Cup Icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M18 5H4c-1.1 0-2 .9-2 2v8c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4v-1h2c1.7 0 3-1.3 3-3V8c0-1.7-1.3-3-3-3zm0 4h2v2h-2V9zM4 7h12v8c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7zm-2 14h18v2H2z"/>
+          </svg>
+        </div>
+        <h1>BrewOrder</h1>
+      </div>
+      <p class="subtitle">Quickly review stock levels and flag ingredients running low so you can generate your weekly supplier order in seconds.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Print Only Header -->
+    <div class="print-header">
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">Weekly Coffee Shop Restock Order</h2>
+      <p id="printDate" style="color: #666; font-size: 0.9rem;"></p>
+    </div>
+
+    <!-- Stats Overview -->
+    <section class="stats-bar" aria-label="Inventory Overview">
+      <div class="stat-card" id="statCardTotal">
+        <span class="stat-label">Total Ingredients</span>
+        <span class="stat-value" id="statTotalCount">0</span>
+      </div>
+      <div class="stat-card alert" id="statCardFlagged">
+        <span class="stat-label">Flagged to Reorder</span>
+        <span class="stat-value" id="statFlaggedCount">0</span>
+      </div>
+      <div class="stat-card good" id="statCardStocked">
+        <span class="stat-label">Stocked Up</span>
+        <span class="stat-value" id="statStockedCount">0</span>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="actions-panel">
+      <div class="actions-row">
+        <div class="btn-group">
+          <button class="btn btn-primary" id="openAddModalBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Ingredient
+          </button>
+          <button class="btn btn-secondary" id="copyOrderBtn" type="button" title="Copy clean supplier list to clipboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy Order List
+          </button>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-subtle btn-sm" id="clearAllFlagsBtn" type="button" title="Unflag all ingredients after order is placed">
+            Clear All Flags
+          </button>
+          <button class="btn btn-subtle btn-sm" id="resetDefaultsBtn" type="button" title="Reset sample coffee ingredients">
+            Reset Sample Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="filter-section">
+        <div class="search-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input 
+            type="search" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="Search by ingredient name (e.g. Oat Milk, Espresso)..." 
+            aria-label="Search ingredients"
+            autocomplete="off"
+          >
+          <button class="clear-search-btn" id="clearSearchBtn" aria-label="Clear search">&times;</button>
+        </div>
+
+        <div class="filter-chips" id="filterChipsList" role="radiogroup" aria-label="Filter ingredients">
+          <button type="button" class="chip chip-flagged active" data-filter="flagged">
+            🚩 Needs Reorder
+            <span class="chip-count" id="countChipFlagged">0</span>
+          </button>
+          <button type="button" class="chip" data-filter="all">
+            All Items
+            <span class="chip-count" id="countChipAll">0</span>
+          </button>
+          <button type="button" class="chip" data-filter="Beans & Coffee">Beans & Coffee</button>
+          <button type="button" class="chip" data-filter="Milks & Alternatives">Milks & Alternatives</button>
+          <button type="button" class="chip" data-filter="Syrups & Sauces">Syrups & Sauces</button>
+          <button type="button" class="chip" data-filter="Teas & Powders">Teas & Powders</button>
+          <button type="button" class="chip" data-filter="Paper & Packaging">Paper & Packaging</button>
+          <button type="button" class="chip" data-filter="Cleaning & Care">Cleaning & Care</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ingredients List -->
+    <section class="items-container" id="itemsList" aria-label="Ingredient list">
+      <!-- Items dynamically rendered here -->
+    </section>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <h3 id="emptyTitle">All stocked up!</h3>
+      <p id="emptyMessage">No ingredients currently need reordering. Tap the flag on any item when supplies run low, or switch to "All Items" to browse.</p>
+    </div>
+  </main>
+
+  <!-- Add Ingredient Modal -->
+  <div class="modal-backdrop" id="addModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add New Ingredient</h2>
+        <button type="button" class="modal-close-btn" id="closeAddModalBtn" aria-label="Close dialog">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="addIngredientForm" novalidate>
+        <div class="modal-body">
+          <!-- Friendly Inline Error Alert -->
+          <div class="friendly-alert alert-error" id="formErrorAlert" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span id="formErrorMessage">Please check the details below.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="inputItemName">Ingredient Name *</label>
+            <input 
+              type="text" 
+              id="inputItemName" 
+              class="form-input" 
+              placeholder="e.g. Oat Milk, House Espresso Blend" 
+              required
+              maxlength="60"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="selectCategory">Category</label>
+            <select id="selectCategory" class="form-select">
+              <option value="Beans & Coffee">Beans & Coffee</option>
+              <option value="Milks & Alternatives">Milks & Alternatives</option>
+              <option value="Syrups & Sauces">Syrups & Sauces</option>
+              <option value="Teas & Powders">Teas & Powders</option>
+              <option value="Paper & Packaging">Paper & Packaging</option>
+              <option value="Cleaning & Care">Cleaning & Care</option>
+              <option value="Other Essentials">Other Essentials</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inputQuantity">Current Quantity</label>
+              <input 
+                type="number" 
+                id="inputQuantity" 
+                class="form-input" 
+                min="0" 
+                step="1" 
+                value="1"
+              >
+            </div>
+            <div class="form-group">
+              <label for="selectUnit">Unit / Packaging</label>
+              <select id="selectUnit" class="form-select">
+                <option value="bags">bags (e.g. coffee beans)</option>
+                <option value="cartons">cartons (e.g. oat milk, chai)</option>
+                <option value="gallons">gallons (e.g. whole milk)</option>
+                <option value="bottles">bottles (e.g. 750ml syrups)</option>
+                <option value="jugs">jugs (e.g. 64oz sauces)</option>
+                <option value="sleeves">sleeves (e.g. cups, lids)</option>
+                <option value="boxes">boxes / cases</option>
+                <option value="tins">tins / jars (e.g. matcha)</option>
+                <option value="tubs">tubs (e.g. machine cleaner)</option>
+                <option value="units" selected>units / count</option>
+                <option value="other">Other (specify custom unit)...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" id="customUnitRow" style="display: none;">
+            <label for="inputCustomUnit">Custom Unit Name *</label>
+            <input 
+              type="text" 
+              id="inputCustomUnit" 
+              class="form-input" 
+              placeholder="e.g. packs, kg, rolls, packets" 
+              maxlength="25"
+            >
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inputParLevel">Reorder Threshold (Par)</label>
+              <input 
+                type="number" 
+                id="inputParLevel" 
+                class="form-input" 
+                min="0" 
+                step="1" 
+                value="2"
+                title="When quantity drops to or below this amount, reordering is recommended"
+              >
+            </div>
+          </div>
+
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="checkFlagNow" checked>
+            <span>Flag for reorder immediately</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveIngredientBtn">Add to Inventory</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEY = "breworder_inventory_v1";
+
+      // Default realistic coffee shop inventory
+      const DEFAULT_ITEMS = [
+        { id: "1", name: "House Espresso Blend (5 lb bag)", category: "Beans & Coffee", qty: 1, unit: "bags", par: 3, flagged: true },
+        { id: "2", name: "Single Origin Ethiopian Yirgacheffe", category: "Beans & Coffee", qty: 2, unit: "5lb bags", par: 2, flagged: false },
+        { id: "3", name: "Decaf Espresso Blend", category: "Beans & Coffee", qty: 1, unit: "5lb bags", par: 2, flagged: true },
+        { id: "4", name: "Barista Edition Oat Milk", category: "Milks & Alternatives", qty: 4, unit: "cartons (32oz)", par: 12, flagged: true },
+        { id: "5", name: "Whole Milk (Gallon)", category: "Milks & Alternatives", qty: 6, unit: "gallons", par: 8, flagged: true },
+        { id: "6", name: "Almond Milk", category: "Milks & Alternatives", qty: 5, unit: "cartons (32oz)", par: 4, flagged: false },
+        { id: "7", name: "Pure Cane Vanilla Syrup (750ml)", category: "Syrups & Sauces", qty: 1, unit: "bottles", par: 3, flagged: true },
+        { id: "8", name: "Caramel Sauce (64oz jug)", category: "Syrups & Sauces", qty: 2, unit: "jugs", par: 2, flagged: false },
+        { id: "9", name: "Spiced Chai Concentrate (32oz)", category: "Syrups & Sauces", qty: 3, unit: "cartons", par: 5, flagged: true },
+        { id: "10", name: "Ceremonial Grade Matcha Powder", category: "Teas & Powders", qty: 2, unit: "100g tins", par: 2, flagged: false },
+        { id: "11", name: "Earl Grey Loose Leaf Tea", category: "Teas & Powders", qty: 1, unit: "1lb bags", par: 2, flagged: true },
+        { id: "12", name: "12oz Hot Cups (Sleeve of 50)", category: "Paper & Packaging", qty: 4, unit: "sleeves", par: 6, flagged: true },
+        { id: "13", name: "16oz Hot Cups (Sleeve of 50)", category: "Paper & Packaging", qty: 8, unit: "sleeves", par: 6, flagged: false },
+        { id: "14", name: "Compostable Hot Lids", category: "Paper & Packaging", qty: 3, unit: "sleeves", par: 8, flagged: true },
+        { id: "15", name: "Cafiza Espresso Machine Cleaner", category: "Cleaning & Care", qty: 1, unit: "tubs", par: 2, flagged: true }
+      ];
+
+      // App State
+      let items = loadItems();
+      let currentFilter = "flagged"; // default to showing items that need attention!
+      let searchQuery = "";
+
+      // DOM Elements
+      const itemsListEl = document.getElementById("itemsList");
+      const emptyStateEl = document.getElementById("emptyState");
+      const emptyTitleEl = document.getElementById("emptyTitle");
+      const emptyMessageEl = document.getElementById("emptyMessage");
+      const searchInputEl = document.getElementById("searchInput");
+      const clearSearchBtnEl = document.getElementById("clearSearchBtn");
+      const filterChipsEl = document.getElementById("filterChipsList");
+      const statTotalEl = document.getElementById("statTotalCount");
+      const statFlaggedEl = document.getElementById("statFlaggedCount");
+      const statStockedEl = document.getElementById("statStockedCount");
+      const countChipFlaggedEl = document.getElementById("countChipFlagged");
+      const countChipAllEl = document.getElementById("countChipAll");
+
+      // Modal Elements
+      const openAddModalBtn = document.getElementById("openAddModalBtn");
+      const closeAddModalBtn = document.getElementById("closeAddModalBtn");
+      const cancelAddBtn = document.getElementById("cancelAddBtn");
+      const addModalBackdrop = document.getElementById("addModalBackdrop");
+      const addForm = document.getElementById("addIngredientForm");
+      const formErrorAlert = document.getElementById("formErrorAlert");
+      const formErrorMessage = document.getElementById("formErrorMessage");
+      const inputItemName = document.getElementById("inputItemName");
+      const selectCategory = document.getElementById("selectCategory");
+      const inputQuantity = document.getElementById("inputQuantity");
+      const selectUnit = document.getElementById("selectUnit");
+      const customUnitRow = document.getElementById("customUnitRow");
+      const inputCustomUnit = document.getElementById("inputCustomUnit");
+      const inputParLevel = document.getElementById("inputParLevel");
+      const checkFlagNow = document.getElementById("checkFlagNow");
+
+      // Action Buttons
+      const copyOrderBtn = document.getElementById("copyOrderBtn");
+      const clearAllFlagsBtn = document.getElementById("clearAllFlagsBtn");
+      const resetDefaultsBtn = document.getElementById("resetDefaultsBtn");
+      const toastContainer = document.getElementById("toastContainer");
+      const printDateEl = document.getElementById("printDate");
+
+      // Initialize
+      if (printDateEl) {
+        printDateEl.textContent = "Generated on " + new Date().toLocaleDateString(undefined, {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+      }
+
+      render();
+
+      // --- Storage helpers ---
+      function loadItems() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load from localStorage, using starter items.", e);
+        }
+        return JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+      }
+
+      function saveItems() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } catch (e) {
+          showToast("Heads up: Storage is full, so changes may not persist if you refresh.", "error");
+        }
+      }
+
+      // --- Friendly Toast Notifications ---
+      function showToast(message, type = "normal") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type === "error" ? "toast-error" : type === "success" ? "toast-success" : ""}`;
+        
+        const iconSvg = type === "success" 
+          ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+          : type === "error"
+          ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`
+          : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+
+        toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(10px)";
+          setTimeout(() => toast.remove(), 320);
+        }, 3400);
+      }
+
+      // --- UI Helpers ---
+      function escapeHtml(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // --- Main Render Function ---
+      function render() {
+        // Update stats
+        const totalCount = items.length;
+        const flaggedCount = items.filter(i => i.flagged).length;
+        const stockedCount = totalCount - flaggedCount;
+
+        statTotalEl.textContent = totalCount;
+        statFlaggedEl.textContent = flaggedCount;
+        statStockedEl.textContent = stockedCount;
+
+        countChipFlaggedEl.textContent = flaggedCount;
+        countChipAllEl.textContent = totalCount;
+
+        // Filter and search
+        const filtered = items.filter(item => {
+          // Category/Status filter
+          if (currentFilter === "flagged" && !item.flagged) {
+            return false;
+          }
+          if (currentFilter !== "all" && currentFilter !== "flagged" && item.category !== currentFilter) {
+            return false;
+          }
+
+          // Search text
+          if (searchQuery.trim() !== "") {
+            const q = searchQuery.toLowerCase();
+            const matchesName = item.name.toLowerCase().includes(q);
+            const matchesCategory = item.category.toLowerCase().includes(q);
+            const matchesUnit = item.unit.toLowerCase().includes(q);
+            if (!matchesName && !matchesCategory && !matchesUnit) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+
+        // Clear list
+        itemsListEl.innerHTML = "";
+
+        if (filtered.length === 0) {
+          itemsListEl.style.display = "none";
+          emptyStateEl.style.display = "flex";
+
+          if (searchQuery.trim() !== "") {
+            emptyTitleEl.textContent = "No matches found";
+            emptyMessageEl.textContent = `No ingredients matched "${searchQuery}". Check the spelling or try clearing the search.`;
+          } else if (currentFilter === "flagged") {
+            emptyTitleEl.textContent = "All stocked up this week!";
+            emptyMessageEl.textContent = "No ingredients are currently flagged to reorder. Tap the flag icon on any item below to mark it when you're running low.";
+          } else {
+            emptyTitleEl.textContent = "No items in this category";
+            emptyMessageEl.textContent = "You can add new ingredients to this category anytime using the 'Add Ingredient' button.";
+          }
+        } else {
+          itemsListEl.style.display = "flex";
+          emptyStateEl.style.display = "none";
+
+          filtered.forEach(item => {
+            const card = document.createElement("div");
+            card.className = `item-card ${item.flagged ? "is-flagged" : ""}`;
+            card.setAttribute("data-id", item.id);
+
+            card.innerHTML = `
+              <button 
+                type="button" 
+                class="flag-toggle-btn" 
+                title="${item.flagged ? 'Click to unflag (stocked)' : 'Click to flag for reorder'}"
+                aria-label="${item.flagged ? 'Mark ' + escapeHtml(item.name) + ' as in stock' : 'Flag ' + escapeHtml(item.name) + ' for reorder'}"
+              >
+                <!-- Flag Icon -->
+                <svg viewBox="0 0 24 24" fill="${item.flagged ? 'currentColor' : 'none'}" stroke="currentColor">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                  <line x1="4" y1="22" x2="4" y2="15"></line>
+                </svg>
+              </button>
+
+              <div class="item-info">
+                <div class="item-header-row">
+                  <span class="item-name">${escapeHtml(item.name)}</span>
+                  ${item.flagged 
+                    ? `<span class="badge badge-flagged">Reorder Needed</span>` 
+                    : `<span class="badge badge-ok">In Stock</span>`}
+                </div>
+                <div class="item-meta">
+                  <span class="category-tag">${escapeHtml(item.category)}</span>
+                  <span class="par-threshold">Par: <strong>${item.par} ${escapeHtml(item.unit)}</strong></span>
+                </div>
+              </div>
+
+              <div class="item-controls">
+                <div class="qty-counter" title="Current on-hand count">
+                  <button type="button" class="qty-btn qty-btn-minus" aria-label="Decrease quantity">&minus;</button>
+                  <span class="qty-value">${item.qty} ${escapeHtml(item.unit)}</span>
+                  <button type="button" class="qty-btn qty-btn-plus" aria-label="Increase quantity">&plus;</button>
+                </div>
+                <button type="button" class="item-delete-btn" title="Remove ingredient from inventory" aria-label="Delete ${escapeHtml(item.name)}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            `;
+
+            // Card Event Listeners
+            const toggleBtn = card.querySelector(".flag-toggle-btn");
+            toggleBtn.addEventListener("click", () => toggleFlag(item.id));
+
+            const minusBtn = card.querySelector(".qty-btn-minus");
+            minusBtn.addEventListener("click", () => adjustQty(item.id, -1));
+
+            const plusBtn = card.querySelector(".qty-btn-plus");
+            plusBtn.addEventListener("click", () => adjustQty(item.id, 1));
+
+            const deleteBtn = card.querySelector(".item-delete-btn");
+            deleteBtn.addEventListener("click", () => deleteItem(item.id, item.name));
+
+            itemsListEl.appendChild(card);
+          });
+        }
+      }
+
+      // --- Actions ---
+      function toggleFlag(id) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        item.flagged = !item.flagged;
+        saveItems();
+        render();
+
+        if (item.flagged) {
+          showToast(`🚩 Flagged "${item.name}" for reorder.`);
+        } else {
+          showToast(`Marked "${item.name}" as stocked.`);
+        }
+      }
+
+      function adjustQty(id, delta) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        const oldQty = item.qty;
+        const newQty = Math.max(0, item.qty + delta);
+        if (oldQty === newQty) return;
+
+        item.qty = newQty;
+
+        // Friendly auto-prompt: if qty is reduced at or below par, flag it!
+        if (delta < 0 && item.qty <= item.par && !item.flagged) {
+          item.flagged = true;
+          showToast(`"${item.name}" reached low stock (≤ ${item.par}) and was flagged to reorder!`, "error");
+        }
+
+        saveItems();
+        render();
+      }
+
+      function deleteItem(id, name) {
+        const confirmed = window.confirm(`Remove "${name}" from your ingredient list?`);
+        if (!confirmed) return;
+
+        items = items.filter(i => i.id !== id);
+        saveItems();
+        render();
+        showToast(`Removed "${name}" from your inventory.`);
+      }
+
+      // --- Add Ingredient Form & Validation ---
+      function hideFormError() {
+        formErrorAlert.style.display = "none";
+        formErrorMessage.textContent = "";
+      }
+
+      function showFormError(msg) {
+        formErrorMessage.textContent = msg;
+        formErrorAlert.style.display = "flex";
+      }
+
+      function openModal() {
+        hideFormError();
+        addForm.reset();
+        inputQuantity.value = "1";
+        selectUnit.value = "units";
+        customUnitRow.style.display = "none";
+        inputCustomUnit.value = "";
+        inputParLevel.value = "2";
+        checkFlagNow.checked = true;
+        addModalBackdrop.classList.add("is-open");
+        setTimeout(() => inputItemName.focus(), 100);
+      }
+
+      function closeModal() {
+        addModalBackdrop.classList.remove("is-open");
+      }
+
+      selectUnit.addEventListener("change", () => {
+        if (selectUnit.value === "other") {
+          customUnitRow.style.display = "flex";
+          inputCustomUnit.focus();
+        } else {
+          customUnitRow.style.display = "none";
+        }
+      });
+
+      openAddModalBtn.addEventListener("click", openModal);
+      closeAddModalBtn.addEventListener("click", closeModal);
+      cancelAddBtn.addEventListener("click", closeModal);
+
+      addModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === addModalBackdrop) {
+          closeModal();
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && addModalBackdrop.classList.contains("is-open")) {
+          closeModal();
+        }
+      });
+
+      addForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        hideFormError();
+
+        const name = inputItemName.value.trim();
+        const category = selectCategory.value;
+        let unit = selectUnit.value;
+        if (unit === "other") {
+          unit = inputCustomUnit.value.trim();
+          if (!unit) {
+            showFormError("Friendly reminder: Please enter your custom unit name, or pick one from the dropdown.");
+            inputCustomUnit.focus();
+            return;
+          }
+        }
+        const qty = parseInt(inputQuantity.value, 10);
+        const par = parseInt(inputParLevel.value, 10);
+        const flagged = checkFlagNow.checked;
+
+        // Friendly validations
+        if (!name) {
+          showFormError("Friendly reminder: Please give your ingredient a name before saving.");
+          inputItemName.focus();
+          return;
+        }
+
+        // Ensure name contains at least one letter
+        if (!/[a-zA-Z\p{L}]/u.test(name)) {
+          showFormError("Friendly reminder: Ingredient names must contain at least one letter, not just numbers.");
+          inputItemName.focus();
+          return;
+        }
+
+        // Duplicate name check
+        const existing = items.find(i => i.name.toLowerCase() === name.toLowerCase());
+        if (existing) {
+          showFormError(`Looks like "${name}" is already on your list under ${existing.category}.`);
+          inputItemName.focus();
+          return;
+        }
+
+        if (isNaN(qty) || qty < 0) {
+          showFormError("Current quantity must be zero or a positive number.");
+          inputQuantity.focus();
+          return;
+        }
+
+        if (isNaN(par) || par < 0) {
+          showFormError("Reorder threshold must be zero or a positive number.");
+          inputParLevel.focus();
+          return;
+        }
+
+        // Create new ingredient
+        const newItem = {
+          id: Date.now().toString(),
+          name,
+          category,
+          qty,
+          unit,
+          par,
+          flagged
+        };
+
+        items.unshift(newItem);
+        saveItems();
+        closeModal();
+        render();
+
+        showToast(`Added "${name}" to ${category}!`, "success");
+      });
+
+      // --- Filter Chips Click ---
+      filterChipsEl.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+
+        const filter = chip.getAttribute("data-filter");
+        if (!filter) return;
+
+        currentFilter = filter;
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        render();
+      });
+
+      // --- Search Input ---
+      searchInputEl.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        clearSearchBtnEl.style.display = searchQuery ? "block" : "none";
+        render();
+      });
+
+      clearSearchBtnEl.addEventListener("click", () => {
+        searchInputEl.value = "";
+        searchQuery = "";
+        clearSearchBtnEl.style.display = "none";
+        render();
+        searchInputEl.focus();
+      });
+
+      // --- Copy Order List to Clipboard ---
+      copyOrderBtn.addEventListener("click", () => {
+        const flaggedItems = items.filter(i => i.flagged);
+
+        if (flaggedItems.length === 0) {
+          showToast("No items are flagged right now! Flag low stock items first to copy your order.", "error");
+          return;
+        }
+
+        // Group by category
+        const groups = {};
+        flaggedItems.forEach(item => {
+          if (!groups[item.category]) groups[item.category] = [];
+          groups[item.category].push(item);
+        });
+
+        const dateStr = new Date().toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric'
+        });
+
+        let summary = `☕ WEEKLY COFFEE SHOP REORDER LIST (${dateStr})\n`;
+        summary += `Total Items to Restock: ${flaggedItems.length}\n`;
+        summary += `-------------------------------------------\n\n`;
+
+        for (const [category, catItems] of Object.entries(groups)) {
+          summary += `[${category.toUpperCase()}]\n`;
+          catItems.forEach(item => {
+            summary += `• ${item.name} — Current: ${item.qty} ${item.unit} (Par: ${item.par})\n`;
+          });
+          summary += `\n`;
+        }
+
+        summary += `Generated with BrewOrder`;
+
+        // Modern clipboard with fallback
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(summary)
+            .then(() => {
+              showToast(`Copied ${flaggedItems.length} items to clipboard! Ready to paste into SMS or email.`, "success");
+            })
+            .catch(() => {
+              fallbackCopy(summary, flaggedItems.length);
+            });
+        } else {
+          fallbackCopy(summary, flaggedItems.length);
+        }
+      });
+
+      function fallbackCopy(text, count) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand("copy");
+          showToast(`Copied ${count} items to clipboard!`, "success");
+        } catch (err) {
+          showToast("Couldn't auto-copy to clipboard. You can use Print View instead.", "error");
+        }
+        document.body.removeChild(textArea);
+      }
+
+      // --- Clear All Flags ---
+      clearAllFlagsBtn.addEventListener("click", () => {
+        const flaggedCount = items.filter(i => i.flagged).length;
+        if (flaggedCount === 0) {
+          showToast("All items are already cleared (in stock)!", "normal");
+          return;
+        }
+
+        const confirmed = window.confirm(`Clear all ${flaggedCount} reorder flags? Mark this once your supplier order has been successfully placed.`);
+        if (!confirmed) return;
+
+        items.forEach(i => i.flagged = false);
+        saveItems();
+        render();
+        showToast("All reorder flags cleared. Ready for next week's inventory!", "success");
+      });
+
+      // --- Reset Sample Data ---
+      resetDefaultsBtn.addEventListener("click", () => {
+        const confirmed = window.confirm("Reset back to default sample coffee shop inventory? Custom items you've added will be replaced.");
+        if (!confirmed) return;
+
+        items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+        saveItems();
+        currentFilter = "flagged";
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        const flaggedChip = document.querySelector('.chip[data-filter="flagged"]');
+        if (flaggedChip) flaggedChip.classList.add("active");
+        render();
+        showToast("Inventory restored to coffee shop starter essentials.", "success");
+      });
+
+    })();
+  </script>
+</body>
+</html>
