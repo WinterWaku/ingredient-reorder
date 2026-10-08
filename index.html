@@ -1373,6 +1373,13 @@
           return true;
         });
 
+        // Sort: Flagged (reorder needed) first, in-stock underneath, then alphabetically
+        filtered.sort((a, b) => {
+          if (a.flagged && !b.flagged) return -1;
+          if (!a.flagged && b.flagged) return 1;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
+
         // Clear list
         itemsListEl.innerHTML = "";
 
